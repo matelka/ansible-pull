@@ -1,10 +1,10 @@
 ---
-- hosts : all
-  - name: ensure file exists
-    copy:
-      content: ""
-      dest: /etc/nologin
-      force: no
-      group: sys
-      owner: root
-      mode: 0555
+- hosts: all
+  sudo: yes
+#  become: yes
+#  become_method: sudo
+  tasks:
+  - name: check alive servers
+    ping:
+  - name: install some stuff
+    apt: name=tree state=present
