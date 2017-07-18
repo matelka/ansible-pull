@@ -1,8 +1,10 @@
-- name: ensure file exists
-  copy:
-    content: ""
-    dest: /etc/nologin
-    force: no
-    group: sys
-    owner: root
-    mode: 0555
+---
+- hosts : all
+  - name: ensure file exists
+    copy:
+      content: ""
+      dest: /etc/nologin
+      force: no
+      group: sys
+      owner: root
+      mode: 0555
