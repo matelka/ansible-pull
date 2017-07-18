@@ -8,3 +8,5 @@
     ping:
   - name: install some stuff
     apt: name=tree state=present
+- name: Create a new file
+  file: path=/tmp/foo.conf state=touch
