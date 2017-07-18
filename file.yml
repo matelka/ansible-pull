@@ -1,6 +1,6 @@
 - name: ensure file exists
   copy:
-    content: "test"
+    content: ""
     dest: /tmp/nologin
     force: no
     group: sys
