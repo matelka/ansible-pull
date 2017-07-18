@@ -1,4 +1,8 @@
-- file:
-    path: /tmp/foo.conf
-    state: touch
-    mode: "u=rw,g=r,o=r"
+- name: ensure file exists
+  copy:
+    content: ""
+    dest: /etc/nologin
+    force: no
+    group: sys
+    owner: root
+    mode: 0555
