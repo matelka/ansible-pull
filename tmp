@@ -19,3 +19,15 @@ for var in $VARS; do
         echo "⚠️ $var n'est pas utilisé"
     fi
 done
+
+
+
+
+
+for var in $VARS; do
+    if grep -R --exclude="$VAR_FILE" -E "\${$var}|\$$var" "$SCRIPTS_DIR" >/dev/null 2>&1; then
+        echo "✔️ $var est utilisé"
+    else
+        echo "⚠️ $var n'est pas utilisé"
+    fi
+done
