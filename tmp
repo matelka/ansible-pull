@@ -49,3 +49,40 @@ done
 
 
 echo "DEBUG : grep -R -E \"\\\$$var|\\\${$var}\" $SCRIPTS_DIR"
+
+
+
+
+#!/bin/bash
+
+# Fichier contenant les exports
+VAR_FILE="/home/maitelka/script/env_std.sh"
+
+# Répertoire contenant tes scripts
+SCRIPTS_DIR="/home/maitelka/script/toCheck"
+
+# Mode debug (1 = activé, 0 = désactivé)
+DEBUG=1
+
+echo "🔎 Vérification des variables définies dans $VAR_FILE..."
+echo "👉 Recherche dans : $SCRIPTS_DIR"
+
+# Récupération des variables exportées (avec ou sans =)
+VARS=$(grep -oP '^[[:space:]]*export[[:space:]]+\K[[:alnum:]_]+' "$VAR_FILE")
+
+# Vérification de l’utilisation
+for var in $VARS; do
+    # Construire le motif de recherche
+    PATTERN="\\\$$var|\\\${$var}"
+
+    # Debug optionnel
+    if [ "$DEBUG" -eq 1 ]; then
+        echo "DEBUG : grep -R -E \"$PATTERN\" $SCRIPTS_DIR"
+    fi
+
+    if grep -R --exclude="$VAR_FILE" -E "$PATTERN" "$SCRIPTS_DIR" >/dev/null 2>&1; then
+        echo "✔️ $var est utilisé"
+    else
+        echo "⚠️ $var n'est pas utilisé"
+    fi
+done
