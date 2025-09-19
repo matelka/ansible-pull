@@ -12,3 +12,21 @@ for var in $VARS; do
         echo "⚠️ $var n'est pas utilisé"
     fi
 done
+
+
+
+
+
+echo "🔎 Vérification des variables définies dans $VAR_FILE..."
+echo "👉 Recherche dans : $SCRIPTS_DIR"
+
+# Récupération des variables exportées
+VARS=$(grep -oP '^[[:space:]]*export[[:space:]]+\K[[:alnum:]_]+' "$VAR_FILE")
+
+for var in $VARS; do
+    if grep -R --exclude="$VAR_FILE" "$var" "$SCRIPTS_DIR" >/dev/null 2>&1; then
+        echo "✔️ $var est utilisé"
+    else
+        echo "⚠️ $var n'est pas utilisé"
+    fi
+done
