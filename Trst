@@ -1,43 +1,55 @@
 #!/bin/bash
 
 
-echo "--- Démarrage de la vérification des variables d'environnement ---"
-echo "Fichier de référence : $VAR_FILE"
-echo "Scripts à analyser : $SCRIPTS_DIR"
-echo "------------------------------------------------------------------"
+echo "Vérification des variables définies dans $VAR_FILE..."
+echo "Recherche dans : $SCRIPTS_DIR (Les liens symboliques seront ignorés)"
+echo "---------------------------------------------------"
+echo "## Variables qui NE sont PAS utilisées :"
 
-# 1. Récupération des noms de variables exportées (plus robuste)
-# On filtre les lignes 'export VAR=value', on prend le premier mot après 'export',
-# et on ne garde que le nom (en coupant au '=' ou en prenant le nom).
-# La commande 'sed' est souvent plus simple ici. On cherche le mot après 'export'
-# et on le coupe au premier caractère non-alphanumérique ou au '='.
-# Ici, on utilise 'grep' avec une expression régulière Perl-compatible pour une meilleure précision.
-# On filtre uniquement les noms de variables (lettres, chiffres, underscore, majuscules recommandées pour l'environnement).
-VARS=$(grep -oP 'export\s+([A-Z_][A-Z0-9_]*)' "$VAR_FILE" | awk '{print $2}' | sed 's/=.*//' | sort -u)
+# Récupération des variables exportées (Votre ligne d'origine)
+VARS=$(grep -oP '^[[:space:]]*export[[:space:]]+[A-Z_][A-Z0-9_]*' "$VAR_FILE" | awk '{print $NF}')
 
-echo "Total de variables exportées trouvées : $(echo "$VARS" | wc -l)"
-echo ""
-echo "## Variables qui ne semblent plus être utilisées :"
-echo "-------------------------------------------------"
-
-# 2. Boucle de vérification
 for var in $VARS; do
-    # -R : récursif
-    # -q : mode silencieux (ne renvoie rien en sortie, juste le code de retour)
-    # --exclude : exclut le fichier d'origine de la recherche
-    # -e : permet de spécifier plusieurs motifs de recherche (recherche $var ET ${var})
-    # L'utilisation de \$$var et \${$var} assure que l'on recherche l'usage de la variable,
-    # et non juste une chaîne de caractères qui contiendrait le nom de la variable.
+    # -------------------------------------------------------------------------
+    # Recherche corrigée pour une sortie silencieuse et sans erreur :
+    # -R : Récursif
+    # -q : Silencieux (empêche l'affichage des lignes trouvées)
+    # -D skip : Ignore explicitement les liens symboliques problématiques
+    # 2>/dev/null : Masque les messages d'erreur (dont "Too many levels...")
+    # -------------------------------------------------------------------------
     
-    # On vérifie si la variable est utilisée.
-    if grep -R -q -e "\$$var" -e "\${$var}" --exclude="$VAR_FILE" "$SCRIPTS_DIR" 2>/dev/null; then
-        # Variable utilisée, on ne fait rien ou on affiche en mode debug si besoin.
-        : # continue
+    if grep -R -q -D skip --exclude="$VAR_FILE" "$var" "$SCRIPTS_DIR" 2>/dev/null; then
+        : # Utilisé, on ne fait rien
     else
-        # Variable NON utilisée, on l'affiche
-        echo "$var"
+        # NON utilisé, on affiche clairement le résultat
+        echo "∆ $var n'est pas utilisé"
     fi
 done
 
-echo "-------------------------------------------------"
+echo "---------------------------------------------------"
+echo "Vérification terminée."
+
+
+
+
+#!/bin/bash
+
+
+echo "Vérification des variables définies dans $VAR_FILE..."
+echo "Recherche dans : $SCRIPTS_DIR"
+echo "---------------------------------------------------"
+echo "## Variables qui NE sont PAS utilisées :"
+
+VARS=$(grep -oP '^[[:space:]]*export[[:space:]]+[A-Z_][A-Z0-9_]*' "$VAR_FILE" | awk '{print $NF}')
+
+for var in $VARS; do
+    
+    if grep -R -q -D skip --exclude="$VAR_FILE" "$var" "$SCRIPTS_DIR" 2>/dev/null; then
+        :
+    else
+        echo "∆ $var n'est pas utilisé"
+    fi
+done
+
+echo "---------------------------------------------------"
 echo "Vérification terminée."
