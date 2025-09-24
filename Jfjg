@@ -1,18 +1,15 @@
-"
-)
-
-# Directory containing the scripts to check
+ contenant les scripts à vérifier
 SCRIPTS_DIR="/home/maitelka/script/toCheck"
 
 VARS_TOTAL=0
 VARS_USED=0
 VARS_UNUSED=0
 
-echo "Checking variables defined in configuration files..."
-echo "Searching for usage in: $SCRIPTS_DIR"
+echo "Vérification des variables définies dans les fichiers de configuration..."
+echo "Recherche de l'utilisation dans : $SCRIPTS_DIR"
 echo "---------------------------------------------------"
 
-# Get exported variables from ALL files and store them in an associative array
+# Récupération des variables exportées à partir de TOUS les fichiers
 declare -A VARS
 VARS_RAW_COUNT=0
 
@@ -30,49 +27,43 @@ for file in "${VAR_FILES[@]}"; do
             fi
         done <<< "$file_vars"
     else
-        echo "Warning: File $file does not exist or is not accessible. It will be ignored."
+        echo "Avertissement: Le fichier $file n'existe pas ou n'est pas accessible. Il sera ignoré."
     fi
 done
 
-# --- Section 1: Used variables ---
-echo "## Used variables:"
+# --- Section 1: Variables utilisées ---
+echo "## Variables qui SONT utilisées :"
 echo "---------------------------------------------------"
 
-# Build the list of exclude options
-declare -a EXCLUDE_OPTS
-for file in "${VAR_FILES[@]}"; do
-    EXCLUDE_OPTS+=( "--exclude=$file" )
-done
-
-# Check each variable in the associative array
 for var_name in "${!VARS[@]}"; do
-    # Use array to pass arguments to grep to avoid `eval` issues
-    if grep -R -q -D skip "${EXCLUDE_OPTS[@]}" "$var_name" "$SCRIPTS_DIR" 2>/dev/null; then
-        echo "✅ $var_name (found in: ${VARS[$var_name]})"
+    # On exécute grep, en ajoutant explicitement l'exclusion du fichier d'origine
+    if grep -R -q -D skip --exclude="${VARS[$var_name]}" "$var_name" "$SCRIPTS_DIR" 2>/dev/null; then
+        echo "✅ $var_name (trouvé dans: ${VARS[$var_name]})"
         ((VARS_USED++))
     else
         ((VARS_UNUSED++))
     fi
 done
 
-# --- Section 2: Unused variables ---
+# --- Section 2: Variables non utilisées ---
 echo "---"
-echo "## Unused variables:"
+echo "## Variables qui NE sont PAS utilisées :"
 echo "---------------------------------------------------"
 
 for var_name in "${!VARS[@]}"; do
-    if grep -R -q -D skip "${EXCLUDE_OPTS[@]}" "$var_name" "$SCRIPTS_DIR" 2>/dev/null; then
-        : # Do nothing
+    # On exécute grep avec la même logique
+    if grep -R -q -D skip --exclude="${VARS[$var_name]}" "$var_name" "$SCRIPTS_DIR" 2>/dev/null; then
+        : # Ne fait rien
     else
         echo "∆ $var_name"
     fi
 done
 
 echo "---------------------------------------------------"
-echo "### Verification Stats"
-echo "Total unique variables          : $VARS_TOTAL"
-echo "Duplicates found and handled    : $(( VARS_RAW_COUNT - VARS_TOTAL ))"
-echo "Used variables                  : $VARS_USED"
-echo "Unused variables                : $VARS_UNUSED"
+echo "### Statistiques de la vérification"
+echo "Total de variables uniques      : $VARS_TOTAL"
+echo "Doublons trouvés et traités    : $(( VARS_RAW_COUNT - VARS_TOTAL ))"
+echo "Variables utilisées            : $VARS_USED"
+echo "Variables non utilisées        : $VARS_UNUSED"
 echo "---------------------------------------------------"
-echo "Verification complete."
+echo "Vérification terminée."
