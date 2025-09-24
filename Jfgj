@@ -1,5 +1,9 @@
 #
 
+#!/bin/bash
+"
+)
+
 SCRIPTS_DIR="/home/maitelka/script/toCheck"
 
 # Variables pour le rapport final
@@ -25,25 +29,33 @@ for file in "${VAR_FILES[@]}"; do
     fi
 done
 
-# --- Étape 2 : Créer la liste des fichiers à vérifier ---
-# On utilise `find` pour lister tous les fichiers réguliers dans SCRIPTS_DIR
-# et on exclut spécifiquement les fichiers de variables pour éviter les faux positifs.
-FILES_TO_CHECK=""
-for file in "${VAR_FILES[@]}"; do
-    if [ -f "$file" ]; then
-        FILES_TO_CHECK+=" -not -path \"$file\""
-    fi
-done
-
-FILES_TO_CHECK=$(find "$SCRIPTS_DIR" -type f $FILES_TO_CHECK)
-
-# --- Étape 3 : Vérifier l'utilisation des variables et afficher les résultats ---
+# --- Étape 2 : Vérifier l'utilisation des variables ---
 echo "--- Vérification des variables ---"
 echo "## Variables qui SONT utilisées :"
 echo "---------------------------------------------------"
 for var_name in "${!VARS[@]}"; do
-    # On utilise `grep` pour chercher la variable dans les fichiers valides
-    if echo "$FILES_TO_CHECK" | xargs -r grep -q -D skip "$var_name" 2>/dev/null; then
+    IS_USED=false
+    # Boucle sur tous les fichiers du répertoire à vérifier
+    # On utilise find et une boucle pour une meilleure fiabilité
+    find "$SCRIPTS_DIR" -type f | while read -r script_file; do
+        # On vérifie que le fichier n'est PAS un de nos fichiers de variables
+        IS_VAR_FILE=false
+        for var_file in "${VAR_FILES[@]}"; do
+            if [[ "$script_file" == "$var_file" ]]; then
+                IS_VAR_FILE=true
+                break
+            fi
+        done
+        
+        # Si le fichier n'est PAS un fichier de variable et qu'il contient la variable...
+        if [ "$IS_VAR_FILE" = false ] && grep -q -D skip "$var_name" "$script_file" 2>/dev/null; then
+            IS_USED=true
+            break
+        fi
+    done
+    
+    # Affichage des résultats
+    if [ "$IS_USED" = true ]; then
         echo "✅ $var_name (trouvé dans: ${VARS[$var_name]})"
         ((VARS_USED++))
     else
@@ -55,14 +67,27 @@ echo "---"
 echo "## Variables qui NE sont PAS utilisées :"
 echo "---------------------------------------------------"
 for var_name in "${!VARS[@]}"; do
-    if echo "$FILES_TO_CHECK" | xargs -r grep -q -D skip "$var_name" 2>/dev/null; then
-        :
-    else
+    IS_USED=false
+    find "$SCRIPTS_DIR" -type f | while read -r script_file; do
+        IS_VAR_FILE=false
+        for var_file in "${VAR_FILES[@]}"; do
+            if [[ "$script_file" == "$var_file" ]]; then
+                IS_VAR_FILE=true
+                break
+            fi
+        done
+        if [ "$IS_VAR_FILE" = false ] && grep -q -D skip "$var_name" "$script_file" 2>/dev/null; then
+            IS_USED=true
+            break
+        fi
+    done
+
+    if [ "$IS_USED" = false ]; then
         echo "∆ $var_name"
     fi
 done
 
-# --- Étape 4 : Afficher le rapport final ---
+# --- Étape 3 : Afficher le rapport final ---
 echo "---------------------------------------------------"
 echo "### Rapport de la vérification"
 echo "Total de variables uniques      : $VARS_TOTAL"
